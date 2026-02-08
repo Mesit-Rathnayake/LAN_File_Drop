@@ -13,7 +13,7 @@ using socket_t = int;
 #define CLOSE_SOCKET closesocket
 using socket_t = SOCKET;
 #endif
-
+// Sender.cpp
 void sendFile(const std::string& filename, const std::string& ip, int port = 9999) {
     socket_t sock = socket(AF_INET, SOCK_STREAM, 0);
     if(sock < 0) { perror("socket"); return; }
