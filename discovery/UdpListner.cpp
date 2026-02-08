@@ -38,8 +38,6 @@ void listenBroadcast(int port = 8888) {
                              (struct sockaddr*)&senderAddr, &senderLen);
         if(bytes > 0) {
             buffer[bytes] = '\0';
-            std::cout << "Discovered: " << buffer
-                      << " from IP: " << inet_ntoa(senderAddr.sin_addr) << std::endl;
         }
     }
 

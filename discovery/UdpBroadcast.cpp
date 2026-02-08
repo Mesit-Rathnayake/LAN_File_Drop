@@ -31,9 +31,8 @@ void sendBroadcast(const std::string& deviceName, int port = 8888) {
     std::string message = "HELLO FROM: " + deviceName;
 
     while(true) {
-        sendto(sock, message.c_str(), message.size(), 0,
-               (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
-        std::cout << "Broadcast sent: " << message << std::endl;
+         sendto(sock, message.c_str(), message.size(), 0,
+             (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
         SLEEP_MS(5000); // broadcast every 5 seconds
     }
 
