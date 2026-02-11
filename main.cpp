@@ -3,6 +3,7 @@
 #include <string>
 #include <limits>
 #include <thread>
+#include <climits>
 #ifdef _WIN32
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <winsock2.h>
@@ -38,7 +39,7 @@ int main() {
         sendFile(file, ip);
     } else if(choice == 2) {
         std::cout << "Enter destination folder (leave empty for current folder): ";
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
         std::string dest;
         std::getline(std::cin, dest);
         if(dest.empty()) dest = ".";
