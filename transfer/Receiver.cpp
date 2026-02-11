@@ -71,7 +71,8 @@ void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileI
         size_t received = 0;
         while (received < filesize)
         {
-            recv_bytes = recv(client, buffer, sizeof(buffer), 0);
+            int bytes_to_read = (filesize - received < sizeof(buffer)) ? (filesize - received) : sizeof(buffer);
+            int recv_bytes = recv(client, buffer, bytes_to_read, 0);
             if (recv_bytes <= 0)
             {
                 std::cerr << "\nError: Connection closed prematurely at " << received << "/" << filesize << " bytes\n";
