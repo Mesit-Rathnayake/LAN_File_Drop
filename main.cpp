@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <string>
+#include <limits>
 #include <thread>
 #ifdef _WIN32
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -36,7 +37,12 @@ int main() {
         std::cout << "Enter file path: "; std::cin >> file;
         sendFile(file, ip);
     } else if(choice == 2) {
-        receiveFile();
+        std::cout << "Enter destination folder (leave empty for current folder): ";
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::string dest;
+        std::getline(std::cin, dest);
+        if(dest.empty()) dest = ".";
+        receiveFile(9999, dest);
     }
 
     while(true) { std::this_thread::sleep_for(std::chrono::seconds(1)); }
