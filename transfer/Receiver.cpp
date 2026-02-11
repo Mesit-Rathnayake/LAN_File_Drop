@@ -30,11 +30,18 @@ void receiveFile(int port = 9999) {
     socket_t client = accept(sock, nullptr, nullptr);
     if(client < 0) { perror("accept"); return; }
 
-    // Receive file size first
+    // Receive filename length + filename first
+    size_t name_len = 0;
+    recv(client, reinterpret_cast<char*>(&name_len), sizeof(name_len), 0);
+
+    std::string filename(name_len, '\0');
+    recv(client, &filename[0], static_cast<int>(name_len), 0);
+
+    // Receive file size next
     size_t filesize;
     recv(client, reinterpret_cast<char*>(&filesize), sizeof(filesize), 0);
 
-    std::ofstream file("received_file", std::ios::binary);
+    std::ofstream file(filename, std::ios::binary);
     char buffer[4096];
     size_t received = 0;
     while(received < filesize) {

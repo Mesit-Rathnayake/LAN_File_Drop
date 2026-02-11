@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #if defined(__linux__) || defined(__APPLE__)
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -30,7 +31,13 @@ void sendFile(const std::string& filename, const std::string& ip, int port = 999
     std::ifstream file(filename, std::ios::binary);
     if(!file.is_open()) { std::cerr << "Cannot open file\n"; return; }
 
-    // Send file size first
+    // Send filename length + filename first
+    std::string send_name = std::filesystem::path(filename).filename().string();
+    size_t name_len = send_name.size();
+    send(sock, reinterpret_cast<const char*>(&name_len), sizeof(name_len), 0);
+    send(sock, send_name.c_str(), static_cast<int>(name_len), 0);
+
+    // Send file size next
     file.seekg(0, std::ios::end);
     size_t filesize = file.tellg();
     file.seekg(0, std::ios::beg);
