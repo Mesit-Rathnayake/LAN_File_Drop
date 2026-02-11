@@ -37,6 +37,8 @@ void receiveFile(int port = 9999) {
     std::string filename(name_len, '\0');
     recv(client, &filename[0], static_cast<int>(name_len), 0);
 
+    std::cout << "Receiving file: " << filename << "\n";
+
     // Receive file size next
     size_t filesize;
     recv(client, reinterpret_cast<char*>(&filesize), sizeof(filesize), 0);
