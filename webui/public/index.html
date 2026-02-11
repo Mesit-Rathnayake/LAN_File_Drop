@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LAN File Drop</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <h1>LAN File Drop</h1>
+        <p>Send and receive files over your local network.</p>
+      </header>
+
+      <section class="card">
+        <h2>Send Files</h2>
+        <form id="sendForm">
+          <label>
+            Receiver IP
+            <input type="text" id="ip" name="ip" placeholder="192.168.1.50" required />
+          </label>
+          <label>
+            Files
+            <input type="file" id="files" name="files" multiple required />
+          </label>
+          <button type="submit">Send</button>
+          <div id="sendStatus" class="status"></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Receive Files</h2>
+        <label>
+          Destination Folder (WSL path)
+          <input type="text" id="dest" placeholder="/mnt/c/Users/you/Downloads" />
+        </label>
+        <div class="row">
+          <button id="startReceive">Start Receiver</button>
+          <button id="stopReceive" class="secondary">Stop Receiver</button>
+        </div>
+        <div id="receiveStatus" class="status"></div>
+      </section>
+
+      <section class="card">
+        <h2>Logs</h2>
+        <pre id="logOutput"></pre>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
