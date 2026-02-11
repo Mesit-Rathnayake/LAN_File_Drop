@@ -29,22 +29,43 @@ void sendSingleFile(socket_t sock, const std::string &filename)
     // Send filename length + filename
     std::string send_name = std::filesystem::path(filename).filename().string();
     size_t name_len = send_name.size();
-    send(sock, reinterpret_cast<const char *>(&name_len), sizeof(name_len), 0);
-    send(sock, send_name.c_str(), static_cast<int>(name_len), 0);
+    int sent_bytes = send(sock, reinterpret_cast<const char *>(&name_len), sizeof(name_len), 0);
+    if (sent_bytes < 0)
+    {
+        std::cerr << "Error sending filename length\n";
+        return;
+    }
+
+    sent_bytes = send(sock, send_name.c_str(), static_cast<int>(name_len), 0);
+    if (sent_bytes < 0)
+    {
+        std::cerr << "Error sending filename\n";
+        return;
+    }
 
     // Send file size
     file.seekg(0, std::ios::end);
     size_t filesize = file.tellg();
     file.seekg(0, std::ios::beg);
-    send(sock, reinterpret_cast<const char *>(&filesize), sizeof(filesize), 0);
+    sent_bytes = send(sock, reinterpret_cast<const char *>(&filesize), sizeof(filesize), 0);
+    if (sent_bytes < 0)
+    {
+        std::cerr << "Error sending file size\n";
+        return;
+    }
 
     // Send file data
     char buffer[4096];
     size_t sent = 0;
     while (file.read(buffer, sizeof(buffer)) || file.gcount() > 0)
     {
-        send(sock, buffer, file.gcount(), 0);
-        sent += file.gcount();
+        sent_bytes = send(sock, buffer, file.gcount(), 0);
+        if (sent_bytes < 0)
+        {
+            std::cerr << "\nError sending file data (connection closed by receiver?)\n";
+            return;
+        }
+        sent += sent_bytes;
         std::cout << "\rProgress: " << (sent * 100 / filesize) << "%";
         std::cout.flush();
     }

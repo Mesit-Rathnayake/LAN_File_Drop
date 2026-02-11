@@ -21,16 +21,31 @@ void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileI
 {
     // Receive filename length + filename
     size_t name_len = 0;
-    recv(client, reinterpret_cast<char *>(&name_len), sizeof(name_len), 0);
+    int recv_bytes = recv(client, reinterpret_cast<char *>(&name_len), sizeof(name_len), 0);
+    if (recv_bytes <= 0)
+    {
+        std::cerr << "Error receiving filename length\n";
+        return;
+    }
 
     std::string filename(name_len, '\0');
-    recv(client, &filename[0], static_cast<int>(name_len), 0);
+    recv_bytes = recv(client, &filename[0], static_cast<int>(name_len), 0);
+    if (recv_bytes <= 0)
+    {
+        std::cerr << "Error receiving filename\n";
+        return;
+    }
 
     std::cout << "[" << (fileIndex + 1) << "/" << totalFiles << "] Receiving: " << filename << "\n";
 
     // Receive file size
     size_t filesize;
-    recv(client, reinterpret_cast<char *>(&filesize), sizeof(filesize), 0);
+    recv_bytes = recv(client, reinterpret_cast<char *>(&filesize), sizeof(filesize), 0);
+    if (recv_bytes <= 0)
+    {
+        std::cerr << "Error receiving file size\n";
+        return;
+    }
 
     // Save file to destination directory
     try
@@ -45,9 +60,14 @@ void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileI
         size_t received = 0;
         while (received < filesize)
         {
-            int bytes = recv(client, buffer, sizeof(buffer), 0);
-            file.write(buffer, bytes);
-            received += bytes;
+            recv_bytes = recv(client, buffer, sizeof(buffer), 0);
+            if (recv_bytes <= 0)
+            {
+                std::cerr << "\nError: Connection closed prematurely at " << received << "/" << filesize << " bytes\n";
+                break;
+            }
+            file.write(buffer, recv_bytes);
+            received += recv_bytes;
             std::cout << "\rProgress: " << (received * 100 / filesize) << "%";
             std::cout.flush();
         }
