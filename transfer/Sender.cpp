@@ -183,6 +183,7 @@ void sendMultipleFiles(const std::vector<std::string> &filePaths, const std::str
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <cstdint> // Added for fixed-width integers
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <arpa/inet.h>
@@ -216,7 +217,8 @@ bool sendAllBytes(socket_t sock, const char *data, size_t size)
 }
 
 // Helper: Send a single file to socket
-bool sendSingleFile(socket_t sock, const std::string &filename)
+// Updated to accept receiverIP for history logging
+bool sendSingleFile(socket_t sock, const std::string &filename, const std::string& remoteIP)
 {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open())
@@ -227,7 +229,9 @@ bool sendSingleFile(socket_t sock, const std::string &filename)
 
     // Prepare filename metadata
     std::string send_name = std::filesystem::path(filename).filename().string();
-    size_t name_len = send_name.size();
+    
+    // Use uint64_t to ensure cross-platform size consistency
+    uint64_t name_len = static_cast<uint64_t>(send_name.size());
 
     // 1. Send filename length
     if (!sendAllBytes(sock, reinterpret_cast<const char *>(&name_len), sizeof(name_len)))
@@ -237,7 +241,7 @@ bool sendSingleFile(socket_t sock, const std::string &filename)
     }
 
     // 2. Send filename string
-    if (!sendAllBytes(sock, send_name.c_str(), name_len))
+    if (!sendAllBytes(sock, send_name.c_str(), static_cast<size_t>(name_len)))
     {
         std::cerr << "Error sending filename\n";
         return false;
@@ -245,8 +249,9 @@ bool sendSingleFile(socket_t sock, const std::string &filename)
 
     // 3. Get and send file size
     file.seekg(0, std::ios::end);
-    size_t filesize = file.tellg();
+    uint64_t filesize = static_cast<uint64_t>(file.tellg());
     file.seekg(0, std::ios::beg);
+    
     if (!sendAllBytes(sock, reinterpret_cast<const char *>(&filesize), sizeof(filesize)))
     {
         std::cerr << "Error sending file size\n";
@@ -255,7 +260,7 @@ bool sendSingleFile(socket_t sock, const std::string &filename)
 
     // 4. Send file content in chunks
     char buffer[4096];
-    size_t sent_total = 0;
+    uint64_t sent_total = 0;
     while (file.read(buffer, sizeof(buffer)) || file.gcount() > 0)
     {
         int bytes_read = static_cast<int>(file.gcount());
@@ -272,8 +277,8 @@ bool sendSingleFile(socket_t sock, const std::string &filename)
     file.close();
 
     // --- HISTORY IMPLEMENTATION ---
-    // Log the successful transfer to history
-    HistoryManager::logTransfer(filename, "Sent");
+    // Log the successful transfer with the Remote IP
+    HistoryManager::logTransfer(filename, "Sent", remoteIP);
     // ------------------------------
 
     return true;
@@ -301,8 +306,8 @@ void sendFile(const std::string &filename, const std::string &ip, int port = 999
         return;
     }
 
-    // Send number of files (1 for this function)
-    size_t num_files = 1;
+    // Send number of files using uint64_t
+    uint64_t num_files = 1;
     if (!sendAllBytes(sock, reinterpret_cast<const char *>(&num_files), sizeof(num_files)))
     {
         std::cerr << "Error sending file count\n";
@@ -310,7 +315,7 @@ void sendFile(const std::string &filename, const std::string &ip, int port = 999
         return;
     }
 
-    if (sendSingleFile(sock, filename))
+    if (sendSingleFile(sock, filename, ip))
     {
         std::cout << "File sent successfully!\n";
     }
@@ -350,8 +355,8 @@ void sendMultipleFiles(const std::vector<std::string> &filePaths, const std::str
         return;
     }
 
-    // Send total number of files in the queue
-    size_t num_files = filePaths.size();
+    // Send total number of files in the queue as uint64_t
+    uint64_t num_files = static_cast<uint64_t>(filePaths.size());
     if (!sendAllBytes(sock, reinterpret_cast<const char *>(&num_files), sizeof(num_files)))
     {
         std::cerr << "Error sending file count\n";
@@ -365,7 +370,7 @@ void sendMultipleFiles(const std::vector<std::string> &filePaths, const std::str
     {
         std::cout << "\n[" << (i + 1) << "/" << num_files << "] ";
         std::cout << std::filesystem::path(filePaths[i]).filename().string() << "\n";
-        if (!sendSingleFile(sock, filePaths[i]))
+        if (!sendSingleFile(sock, filePaths[i], ip))
         {
             std::cerr << "Transfer interrupted.\n";
             break;

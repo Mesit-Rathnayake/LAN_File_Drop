@@ -1,4 +1,4 @@
-#ifndef HISTORY_CPP
+/*#ifndef HISTORY_CPP
 #define HISTORY_CPP
 
 #include <iostream>
@@ -75,4 +75,86 @@ public:
     }
 };
 
+#endif*/
+#ifndef HISTORY_CPP
+#define HISTORY_CPP
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <iomanip>
+#include <ctime>
+#include <filesystem>
+#include <sstream>
+
+class HistoryManager {
+public:
+    // Log a transfer: Filename, Action, Extension, Date, Time, RemoteIP
+    static void logTransfer(const std::string& filePath, const std::string& action, const std::string& remoteIP) {
+        std::ofstream file("transfer_history.csv", std::ios::app);
+        if (!file.is_open()) return;
+
+        std::filesystem::path p(filePath);
+        std::string filename = p.filename().string();
+        std::string extension = p.extension().string();
+        if (extension.empty()) extension = "none";
+
+        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::tm ltm;
+#ifdef _WIN32
+        localtime_s(&ltm, &now);
+#else
+        localtime_r(&now, &ltm);
+#endif
+
+        // Format: Filename, Action, Extension, Date, Time, IP
+        file << filename << "," 
+             << action << "," 
+             << extension << "," 
+             << std::put_time(&ltm, "%Y-%m-%d") << "," 
+             << std::put_time(&ltm, "%H:%M:%S") << ","
+             << remoteIP << "\n";
+        
+        file.close();
+    }
+
+    static void showHistory() {
+        std::ifstream file("transfer_history.csv");
+        if (!file.is_open()) {
+            std::cout << "\n[!] No history records found.\n";
+            return;
+        }
+
+        std::cout << "\n" << std::string(90, '=') << "\n";
+        std::cout << std::left << std::setw(20) << "FILENAME" 
+                  << std::setw(10) << "ACTION" 
+                  << std::setw(10) << "TYPE" 
+                  << std::setw(12) << "DATE" 
+                  << std::setw(10) << "TIME" 
+                  << "REMOTE IP" << "\n";
+        std::cout << std::string(90, '-') << "\n";
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::stringstream ss(line);
+            std::string name, action, ext, date, time, ip;
+            
+            std::getline(ss, name, ',');
+            std::getline(ss, action, ',');
+            std::getline(ss, ext, ',');
+            std::getline(ss, date, ',');
+            std::getline(ss, time, ',');
+            std::getline(ss, ip, ',');
+
+            std::cout << std::left << std::setw(20) << name
+                      << std::setw(10) << action
+                      << std::setw(10) << ext
+                      << std::setw(12) << date
+                      << std::setw(10) << time
+                      << ip << "\n";
+        }
+        std::cout << std::string(90, '=') << "\n\n";
+        file.close();
+    }
+};
 #endif

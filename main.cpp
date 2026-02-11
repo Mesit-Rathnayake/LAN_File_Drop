@@ -107,15 +107,17 @@ int main()
 #endif
 
 // Including component files
+// Note: Ensure these paths match your project structure
 #include "discovery/UdpBroadcast.cpp"
 #include "discovery/UdpListner.cpp"
 #include "transfer/Sender.cpp"
 #include "transfer/Receiver.cpp"
-#include "transfer/History.cpp" // Added History module
+#include "transfer/History.cpp" 
 
 int main()
 {
 #ifdef _WIN32
+    // Initialize Winsock for Windows
     WSADATA wsaData{};
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
     {
@@ -124,7 +126,8 @@ int main()
     }
 #endif
 
-    // Start background discovery threads
+    // Start background discovery threads (UDP Broadcast/Listen)
+    // Detaching allows them to run in the background while the user interacts with the menu
     std::thread listener(listenBroadcast, 8888);
     std::thread broadcaster(sendBroadcast, std::string("Device_1"), 8888);
 
@@ -142,8 +145,10 @@ int main()
         
         int choice;
         if (!(std::cin >> choice)) {
+            // Handle non-integer input to prevent infinite loops
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "Invalid input. Please enter a number.\n";
             continue;
         }
 
@@ -155,11 +160,18 @@ int main()
 
             std::cout << "How many files to send? ";
             int fileCount;
-            std::cin >> fileCount;
+            if (!(std::cin >> fileCount)) {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "Invalid count.\n";
+                continue;
+            }
+            // Clear buffer before getline
             std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
 
             if (fileCount == 1)
             {
+                // Single file mode
                 std::string file;
                 std::cout << "Enter file path: ";
                 std::getline(std::cin, file);
@@ -167,6 +179,7 @@ int main()
             }
             else if (fileCount > 1)
             {
+                // Multiple files mode
                 std::vector<std::string> fileQueue;
                 std::cout << "Enter file paths (one per line):\n";
                 for (int i = 0; i < fileCount; ++i)
@@ -185,22 +198,26 @@ int main()
         }
         else if (choice == 2)
         {
-            std::cout << "Enter destination folder (leave empty for current folder): ";
+            // Clear buffer before getline
             std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
+            std::cout << "Enter destination folder (leave empty for current folder): ";
             std::string dest;
             std::getline(std::cin, dest);
+            
             if (dest.empty())
                 dest = ".";
             
+            // Starts TCP listening for incoming files
             receiveFile(9999, dest);
         }
         else if (choice == 3)
         {
-            // --- NEW HISTORY OPTION ---
+            // Displays the transfer_history.csv in a formatted table
             HistoryManager::showHistory();
         }
         else if (choice == 4)
         {
+            std::cout << "Exiting...\n";
             break;
         }
         else
