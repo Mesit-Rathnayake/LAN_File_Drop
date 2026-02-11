@@ -87,7 +87,7 @@ bool sendSingleFile(socket_t sock, const std::string &filename)
 void sendFile(const std::string &filename, const std::string &ip, int port = 9999)
 {
     socket_t sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0)
+    if (sock <0)
     {
         perror("socket");
         return;
@@ -136,7 +136,7 @@ void sendMultipleFiles(const std::vector<std::string> &filePaths, const std::str
     }
 
     socket_t sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0)
+    if (sock <0)
     {
         perror("socket");
         return;

@@ -96,7 +96,7 @@ void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileI
 void receiveFile(int port = 9999, const std::string &destDir = ".")
 {
     socket_t sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0)
+    if (sock <0)
     {
         perror("socket");
         return;
@@ -116,7 +116,7 @@ void receiveFile(int port = 9999, const std::string &destDir = ".")
 
     std::cout << "Waiting for incoming file(s)...\n";
     socket_t client = accept(sock, nullptr, nullptr);
-    if (client < 0)
+    if (client <0)
     {
         perror("accept");
         return;
