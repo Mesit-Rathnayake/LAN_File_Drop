@@ -16,6 +16,20 @@ using socket_t = int;
 using socket_t = SOCKET;
 #endif
 
+// Helper: Send exactly N bytes (retry if needed)
+bool sendAllBytes(socket_t sock, const char *data, size_t size)
+{
+    size_t sent = 0;
+    while (sent < size)
+    {
+        int n = send(sock, data + sent, static_cast<int>(size - sent), 0);
+        if (n <= 0)
+            return false;
+        sent += n;
+    }
+    return true;
+}
+
 // Helper: Send a single file over an open socket
 void sendSingleFile(socket_t sock, const std::string &filename)
 {
@@ -29,15 +43,13 @@ void sendSingleFile(socket_t sock, const std::string &filename)
     // Send filename length + filename
     std::string send_name = std::filesystem::path(filename).filename().string();
     size_t name_len = send_name.size();
-    int sent_bytes = send(sock, reinterpret_cast<const char *>(&name_len), sizeof(name_len), 0);
-    if (sent_bytes < 0)
+    if (!sendAllBytes(sock, reinterpret_cast<const char *>(&name_len), sizeof(name_len)))
     {
         std::cerr << "Error sending filename length\n";
         return;
     }
 
-    sent_bytes = send(sock, send_name.c_str(), static_cast<int>(name_len), 0);
-    if (sent_bytes < 0)
+    if (!sendAllBytes(sock, send_name.c_str(), name_len))
     {
         std::cerr << "Error sending filename\n";
         return;
@@ -47,8 +59,7 @@ void sendSingleFile(socket_t sock, const std::string &filename)
     file.seekg(0, std::ios::end);
     size_t filesize = file.tellg();
     file.seekg(0, std::ios::beg);
-    sent_bytes = send(sock, reinterpret_cast<const char *>(&filesize), sizeof(filesize), 0);
-    if (sent_bytes < 0)
+    if (!sendAllBytes(sock, reinterpret_cast<const char *>(&filesize), sizeof(filesize)))
     {
         std::cerr << "Error sending file size\n";
         return;
@@ -59,13 +70,13 @@ void sendSingleFile(socket_t sock, const std::string &filename)
     size_t sent = 0;
     while (file.read(buffer, sizeof(buffer)) || file.gcount() > 0)
     {
-        sent_bytes = send(sock, buffer, file.gcount(), 0);
-        if (sent_bytes < 0)
+        int bytes_read = file.gcount();
+        if (!sendAllBytes(sock, buffer, bytes_read))
         {
-            std::cerr << "\nError sending file data (connection closed by receiver?)\n";
+            std::cerr << "\nError sending file data at " << sent << "/" << filesize << " bytes\n";
             return;
         }
-        sent += sent_bytes;
+        sent += bytes_read;
         std::cout << "\rProgress: " << (sent * 100 / filesize) << "%";
         std::cout.flush();
     }

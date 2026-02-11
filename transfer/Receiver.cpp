@@ -16,21 +16,33 @@ using socket_t = int;
 using socket_t = SOCKET;
 #endif
 
+// Helper: Receive exactly N bytes (retry if needed)
+bool recvAllBytes(socket_t sock, char *data, size_t size)
+{
+    size_t received = 0;
+    while (received < size)
+    {
+        int n = recv(sock, data + received, static_cast<int>(size - received), 0);
+        if (n <= 0)
+            return false;
+        received += n;
+    }
+    return true;
+}
+
 // Helper: Receive a single file from socket
 void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileIndex, size_t totalFiles)
 {
     // Receive filename length + filename
     size_t name_len = 0;
-    int recv_bytes = recv(client, reinterpret_cast<char *>(&name_len), sizeof(name_len), 0);
-    if (recv_bytes <= 0)
+    if (!recvAllBytes(client, reinterpret_cast<char *>(&name_len), sizeof(name_len)))
     {
         std::cerr << "Error receiving filename length\n";
         return;
     }
 
     std::string filename(name_len, '\0');
-    recv_bytes = recv(client, &filename[0], static_cast<int>(name_len), 0);
-    if (recv_bytes <= 0)
+    if (!recvAllBytes(client, &filename[0], name_len))
     {
         std::cerr << "Error receiving filename\n";
         return;
@@ -40,8 +52,7 @@ void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileI
 
     // Receive file size
     size_t filesize;
-    recv_bytes = recv(client, reinterpret_cast<char *>(&filesize), sizeof(filesize), 0);
-    if (recv_bytes <= 0)
+    if (!recvAllBytes(client, reinterpret_cast<char *>(&filesize), sizeof(filesize)))
     {
         std::cerr << "Error receiving file size\n";
         return;
