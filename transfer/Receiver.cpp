@@ -17,10 +17,11 @@ using socket_t = SOCKET;
 #endif
 
 // Helper: Receive a single file from socket
-void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileIndex, size_t totalFiles) {
+void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileIndex, size_t totalFiles)
+{
     // Receive filename length + filename
     size_t name_len = 0;
-    recv(client, reinterpret_cast<char*>(&name_len), sizeof(name_len), 0);
+    recv(client, reinterpret_cast<char *>(&name_len), sizeof(name_len), 0);
 
     std::string filename(name_len, '\0');
     recv(client, &filename[0], static_cast<int>(name_len), 0);
@@ -29,18 +30,21 @@ void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileI
 
     // Receive file size
     size_t filesize;
-    recv(client, reinterpret_cast<char*>(&filesize), sizeof(filesize), 0);
+    recv(client, reinterpret_cast<char *>(&filesize), sizeof(filesize), 0);
 
     // Save file to destination directory
-    try {
+    try
+    {
         std::filesystem::path dir(destDir);
-        if(!dir.empty()) std::filesystem::create_directories(dir);
+        if (!dir.empty())
+            std::filesystem::create_directories(dir);
         std::filesystem::path outPath = std::filesystem::path(destDir) / filename;
         std::ofstream file(outPath.string(), std::ios::binary);
-        
+
         char buffer[4096];
         size_t received = 0;
-        while(received < filesize) {
+        while (received < filesize)
+        {
             int bytes = recv(client, buffer, sizeof(buffer), 0);
             file.write(buffer, bytes);
             received += bytes;
@@ -50,34 +54,50 @@ void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileI
 
         std::cout << "\n";
         file.close();
-    } catch(const std::exception &ex) {
+    }
+    catch (const std::exception &ex)
+    {
         std::cerr << "Error saving file: " << ex.what() << "\n";
     }
 }
 
-void receiveFile(int port = 9999, const std::string &destDir = ".") {
+void receiveFile(int port = 9999, const std::string &destDir = ".")
+{
     socket_t sock = socket(AF_INET, SOCK_STREAM, 0);
-    if(sock < 0) { perror("socket"); return; }
+    if (sock < 0)
+    {
+        perror("socket");
+        return;
+    }
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
 
-    if(bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) { perror("bind"); return; }
+    if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+    {
+        perror("bind");
+        return;
+    }
     listen(sock, 1);
 
     std::cout << "Waiting for incoming file(s)...\n";
     socket_t client = accept(sock, nullptr, nullptr);
-    if(client < 0) { perror("accept"); return; }
+    if (client < 0)
+    {
+        perror("accept");
+        return;
+    }
 
     // Receive number of files first
     size_t num_files = 0;
-    recv(client, reinterpret_cast<char*>(&num_files), sizeof(num_files), 0);
+    recv(client, reinterpret_cast<char *>(&num_files), sizeof(num_files), 0);
     std::cout << "Receiving " << num_files << " file(s)...\n";
 
     // Receive each file from the queue
-    for(size_t i = 0; i < num_files; ++i) {
+    for (size_t i = 0; i < num_files; ++i)
+    {
         receiveSingleFile(client, destDir, i, num_files);
     }
 
