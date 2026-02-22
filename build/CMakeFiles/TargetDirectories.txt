@@ -1,0 +1,3 @@
+F:/Computer Network Project/LAN_File_Drop/build/CMakeFiles/LANFileDrop.dir
+F:/Computer Network Project/LAN_File_Drop/build/CMakeFiles/ALL_BUILD.dir
+F:/Computer Network Project/LAN_File_Drop/build/CMakeFiles/ZERO_CHECK.dir

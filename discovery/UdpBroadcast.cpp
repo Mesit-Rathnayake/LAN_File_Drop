@@ -21,7 +21,7 @@ void sendBroadcast(const std::string& deviceName, int port = 8888) {
     if(sock < 0) { perror("socket"); return; }
 
     int broadcastEnable = 1;
-    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable));
+    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcastEnable, sizeof(broadcastEnable));
 
     sockaddr_in broadcastAddr{};
     broadcastAddr.sin_family = AF_INET;
