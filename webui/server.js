@@ -7,7 +7,29 @@ const { WebSocketServer } = require("ws");
 const { spawn } = require("node:child_process");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+function getArgValue(name) {
+  const prefix = `--${name}=`;
+  for (let i = 2; i < process.argv.length; i += 1) {
+    const arg = process.argv[i];
+    if (arg.startsWith(prefix)) {
+      return arg.slice(prefix.length);
+    }
+    if (arg === `--${name}` && i + 1 < process.argv.length) {
+      return process.argv[i + 1];
+    }
+  }
+  return "";
+}
+
+function resolvePort() {
+  const cliPort = getArgValue("port");
+  const envPort = process.env.PORT || process.env.port || process.env.APP_PORT || "";
+  const rawPort = cliPort || envPort || "3000";
+  const port = Number.parseInt(rawPort, 10);
+  return Number.isInteger(port) && port > 0 ? port : 3000;
+}
+
+const PORT = resolvePort();
 const ROOT = path.join(__dirname, "..");
 const BIN = process.env.LANFILEDROP_BIN || path.join(ROOT, "LANFileDrop");
 const UPLOAD_DIR = path.join(__dirname, "uploads");
