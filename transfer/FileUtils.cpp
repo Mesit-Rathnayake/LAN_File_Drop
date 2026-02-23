@@ -69,6 +69,18 @@ namespace FileUtils {
         }
         return total;
     }
+
+    // Get relative path from base folder
+    std::string getRelativePath(const std::string& fullPath, const std::string& basePath) {
+        try {
+            std::filesystem::path full = std::filesystem::absolute(fullPath);
+            std::filesystem::path base = std::filesystem::absolute(basePath);
+            return std::filesystem::relative(full, base).string();
+        } catch (...) {
+            // Fallback to filename if relative path calculation fails
+            return std::filesystem::path(fullPath).filename().string();
+        }
+    }
 }
 
 #endif

@@ -188,7 +188,14 @@ void receiveSingleFile(socket_t client, const std::string &destDir, size_t fileI
         std::filesystem::path dir(destDir);
         if (!dir.empty() && !std::filesystem::exists(dir)) std::filesystem::create_directories(dir);
 
+        // Handle potential subdirectory paths in filename (for folder transfers)
         std::filesystem::path outPath = dir / filename;
+        
+        // Create parent directories if filename contains path separators
+        if (outPath.has_parent_path()) {
+            std::filesystem::create_directories(outPath.parent_path());
+        }
+        
         std::ofstream file(outPath.string(), std::ios::binary);
 
         char buffer[4096];
