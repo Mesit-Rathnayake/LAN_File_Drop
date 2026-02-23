@@ -199,9 +199,6 @@ using socket_t = int;
 using socket_t = SOCKET;
 #endif
 
-// Include the history manager to enable logging
-#include "History.cpp"
-
 // Helper: Send exactly N bytes (retry if needed)
 bool sendAllBytes(socket_t sock, const char *data, size_t size)
 {
@@ -379,4 +376,35 @@ void sendMultipleFiles(const std::vector<std::string> &filePaths, const std::str
 
     std::cout << "\nAll files processed.\n";
     CLOSE_SOCKET(sock);
+}
+
+// Send entire folder (recursively scan and send all files)
+void sendFolder(const std::string &folderPath, const std::string &ip, int port = 9999)
+{
+    // Scan the folder recursively
+    std::cout << "Scanning folder: " << folderPath << "\n";
+    std::vector<std::string> files = FileUtils::scanDirectory(folderPath);
+    
+    if (files.empty()) {
+        std::cerr << "No files found in folder or folder is inaccessible.\n";
+        return;
+    }
+
+    // Calculate and display total size
+    uint64_t totalSize = FileUtils::getTotalSize(files);
+    std::cout << "Found " << files.size() << " file(s) | Total size: " 
+              << FileUtils::formatFileSize(totalSize) << "\n";
+    
+    // Confirm before sending
+    std::cout << "Proceed with transfer? (y/n): ";
+    std::string confirm;
+    std::getline(std::cin, confirm);
+    
+    if (confirm != "y" && confirm != "Y") {
+        std::cout << "Transfer cancelled.\n";
+        return;
+    }
+
+    // Use sendMultipleFiles to send all files in the folder
+    sendMultipleFiles(files, ip, port);
 }
