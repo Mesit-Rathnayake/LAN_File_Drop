@@ -118,7 +118,7 @@ app.post("/api/receive", (req, res) => {
 
 app.post("/api/receive/stop", (req, res) => {
   if (!receiverProc) {
-    return res.status(400).json({ error: "Receiver is not running" });
+    return res.json({ ok: true, alreadyStopped: true });
   }
   receiverProc.kill("SIGTERM");
   return res.json({ ok: true });
