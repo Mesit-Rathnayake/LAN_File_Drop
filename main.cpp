@@ -110,9 +110,10 @@ int main()
 // Note: Ensure these paths match your project structure
 #include "discovery/UdpBroadcast.cpp"
 #include "discovery/UdpListner.cpp"
+#include "transfer/History.cpp"
+#include "transfer/FileUtils.cpp"
 #include "transfer/Sender.cpp"
-#include "transfer/Receiver.cpp"
-#include "transfer/History.cpp" 
+#include "transfer/Receiver.cpp" 
 
 int main()
 {
@@ -138,9 +139,10 @@ int main()
     {
         std::cout << "\n========== LAN File Drop ==========\n";
         std::cout << "1. Send File(s)\n";
-        std::cout << "2. Receive File(s)\n";
-        std::cout << "3. View Transfer History\n";
-        std::cout << "4. Exit\n";
+        std::cout << "2. Send Folder\n";
+        std::cout << "3. Receive File(s)\n";
+        std::cout << "4. View Transfer History\n";
+        std::cout << "5. Exit\n";
         std::cout << "Choice: ";
         
         int choice;
@@ -198,6 +200,22 @@ int main()
         }
         else if (choice == 2)
         {
+            // Send Folder option
+            std::string ip;
+            std::cout << "Enter receiver IP: ";
+            std::cin >> ip;
+            
+            // Clear buffer before getline
+            std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
+            
+            std::string folderPath;
+            std::cout << "Enter folder path: ";
+            std::getline(std::cin, folderPath);
+            
+            sendFolder(folderPath, ip);
+        }
+        else if (choice == 3)
+        {
             // Clear buffer before getline
             std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
             std::cout << "Enter destination folder (leave empty for current folder): ";
@@ -210,12 +228,12 @@ int main()
             // Starts TCP listening for incoming files
             receiveFile(9999, dest);
         }
-        else if (choice == 3)
+        else if (choice == 4)
         {
             // Displays the transfer_history.csv in a formatted table
             HistoryManager::showHistory();
         }
-        else if (choice == 4)
+        else if (choice == 5)
         {
             std::cout << "Exiting...\n";
             break;

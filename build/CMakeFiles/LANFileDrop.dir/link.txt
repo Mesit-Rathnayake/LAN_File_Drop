@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/LANFileDrop.dir/main.cpp.o CMakeFiles/LANFileDrop.dir/discovery/UdpBroadcast.cpp.o CMakeFiles/LANFileDrop.dir/discovery/UdpListner.cpp.o CMakeFiles/LANFileDrop.dir/transfer/Sender.cpp.o CMakeFiles/LANFileDrop.dir/transfer/Receiver.cpp.o -o LANFileDrop 
