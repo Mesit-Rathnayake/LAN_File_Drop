@@ -31,8 +31,27 @@ function resolvePort() {
 
 const PORT = resolvePort();
 const ROOT = path.join(__dirname, "..");
-const BIN = process.env.LANFILEDROP_BIN || path.join(ROOT, "LANFileDrop");
 const UPLOAD_DIR = path.join(__dirname, "uploads");
+
+function resolveBinPath() {
+  if (process.env.LANFILEDROP_BIN) {
+    return process.env.LANFILEDROP_BIN;
+  }
+
+  const candidates = process.platform === "win32"
+    ? [path.join(ROOT, "LANFileDrop.exe"), path.join(ROOT, "LANFileDrop")]
+    : [path.join(ROOT, "LANFileDrop"), path.join(ROOT, "LANFileDrop.exe")];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates[0];
+}
+
+const BIN = resolveBinPath();
 
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
