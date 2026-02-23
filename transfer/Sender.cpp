@@ -471,6 +471,8 @@ void sendFolder(const std::string &folderPath, const std::string &ip, int port =
     }
 
     // Use sendMultipleFiles to send all files in the folder
-    // Pass the base folder path to preserve folder structure
-    sendMultipleFilesWithBasePath(files, ip, folderPath, port);
+    // Pass the parent directory as base to include folder name in relative path
+    std::filesystem::path folderPathObj(folderPath);
+    std::string basePath = folderPathObj.parent_path().string();
+    sendMultipleFilesWithBasePath(files, ip, basePath, port);
 }
