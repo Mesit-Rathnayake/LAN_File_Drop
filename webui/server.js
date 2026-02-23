@@ -4,7 +4,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const http = require("node:http");
 const { WebSocketServer } = require("ws");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 
 const app = express();
 function getArgValue(name) {
@@ -53,6 +53,72 @@ function resolveBinPath() {
 
 const BIN = resolveBinPath();
 
+function toWslPath(inputPath) {
+  const normalized = inputPath.replaceAll("\\", "/");
+  const match = normalized.match(/^([A-Za-z]):\/(.*)$/);
+  if (!match) {
+    return normalized;
+  }
+  return `/mnt/${match[1].toLowerCase()}/${match[2]}`;
+}
+
+function canUseWslBackend() {
+  if (process.platform !== "win32") {
+    return false;
+  }
+
+  const force = process.env.LANFILEDROP_USE_WSL;
+  if (force === "0" || force === "false") {
+    return false;
+  }
+
+  const linuxBinPath = path.join(ROOT, "LANFileDrop");
+  if (!fs.existsSync(linuxBinPath)) {
+    return false;
+  }
+
+  const probe = spawnSync("wsl", ["--status"], { stdio: "ignore" });
+  return !probe.error;
+}
+
+const USE_WSL_BACKEND = canUseWslBackend();
+
+function mapArgsForWsl(rawArgs) {
+  const mapped = [];
+  let consumeAsPath = false;
+  for (const arg of rawArgs) {
+    if (consumeAsPath) {
+      mapped.push(toWslPath(arg));
+      consumeAsPath = false;
+      continue;
+    }
+
+    mapped.push(arg);
+    if (arg === "--file" || arg === "--dest") {
+      consumeAsPath = true;
+    }
+  }
+  return mapped;
+}
+
+function resolveInvocation(rawArgs) {
+  if (USE_WSL_BACKEND) {
+    return {
+      command: "wsl",
+      args: ["--cd", toWslPath(ROOT), "./LANFileDrop", ...mapArgsForWsl(rawArgs)],
+      cwd: ROOT,
+      mode: "wsl",
+    };
+  }
+
+  return {
+    command: BIN,
+    args: rawArgs,
+    cwd: ROOT,
+    mode: "native",
+  };
+}
+
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
@@ -72,6 +138,9 @@ function appendLog(line) {
 }
 
 function binExists() {
+  if (USE_WSL_BACKEND) {
+    return fs.existsSync(path.join(ROOT, "LANFileDrop"));
+  }
   return fs.existsSync(BIN);
 }
 
@@ -99,8 +168,9 @@ app.post("/api/receive", (req, res) => {
   }
 
   const dest = req.body?.dest || ".";
-  const args = ["--receive", "--dest", dest];
-  receiverProc = spawn(BIN, args, { cwd: ROOT });
+  const launch = resolveInvocation(["--receive", "--dest", dest]);
+  appendLog(`[receive] backend=${launch.mode} cmd=${launch.command}`);
+  receiverProc = spawn(launch.command, launch.args, { cwd: launch.cwd });
 
   receiverProc.stdout.on("data", (chunk) => {
     appendLog(`[receive] ${chunk.toString().trim()}`);
@@ -141,7 +211,9 @@ app.post("/api/send", upload.array("files"), (req, res) => {
     args.push("--file", file.path);
   });
 
-  const sendProc = spawn(BIN, args, { cwd: ROOT });
+  const launch = resolveInvocation(args);
+  appendLog(`[send] backend=${launch.mode} cmd=${launch.command}`);
+  const sendProc = spawn(launch.command, launch.args, { cwd: launch.cwd });
   let output = "";
   let errorOutput = "";
 
