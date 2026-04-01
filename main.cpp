@@ -1,97 +1,3 @@
-/*#include <chrono>
-#include <iostream>
-#include <string>
-#include <vector>
-#include <limits>
-#include <thread>
-#include <climits>
-#ifdef _WIN32
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
-#include "discovery/UdpBroadcast.cpp"
-#include "discovery/UdpListner.cpp"
-#include "transfer/Sender.cpp"
-#include "transfer/Receiver.cpp"
-
-int main()
-{
-#ifdef _WIN32
-    WSADATA wsaData{};
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-    {
-        std::cerr << "WSAStartup failed\n";
-        return 1;
-    }
-#endif
-    std::thread listener(listenBroadcast, 8888);
-    std::thread broadcaster(sendBroadcast, std::string("Device_1"), 8888);
-
-    listener.detach();
-    broadcaster.detach();
-
-    std::cout << "========== LAN File Drop ==========\n";
-    std::cout << "1. Send File(s)\n2. Receive File(s)\nChoice: ";
-    int choice;
-    std::cin >> choice;
-
-    if (choice == 1)
-    {
-        std::string ip;
-        std::cout << "Enter receiver IP: ";
-        std::cin >> ip;
-
-        std::cout << "How many files to send? ";
-        int fileCount;
-        std::cin >> fileCount;
-        std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
-
-        if (fileCount == 1)
-        {
-            // Single file mode
-            std::string file;
-            std::cout << "Enter file path: ";
-            std::getline(std::cin, file);
-            sendFile(file, ip);
-        }
-        else if (fileCount > 1)
-        {
-            // Multiple files mode - queue them in a vector
-            std::vector<std::string> fileQueue;
-            std::cout << "Enter file paths (one per line):\n";
-            for (int i = 0; i < fileCount; ++i)
-            {
-                std::string file;
-                std::cout << "File " << (i + 1) << ": ";
-                std::getline(std::cin, file);
-                fileQueue.push_back(file);
-            }
-            // Send all files sequentially from the queue
-            sendMultipleFiles(fileQueue, ip);
-        }
-        else
-        {
-            std::cout << "Invalid input!\n";
-        }
-    }
-    else if (choice == 2)
-    {
-        std::cout << "Enter destination folder (leave empty for current folder): ";
-        std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
-        std::string dest;
-        std::getline(std::cin, dest);
-        if (dest.empty())
-            dest = ".";
-        receiveFile(9999, dest);
-    }
-
-    while (true)
-    {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-}
-*/
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -155,65 +61,175 @@ int main()
         }
 
         if (choice == 1)
+{
+    // Ask number of devices
+    std::cout << "How many devices to send the file(s) to? ";
+    int deviceCount = 0;
+
+    if (!(std::cin >> deviceCount) || deviceCount <= 0)
+    {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << "Invalid device count.\n";
+        continue;
+    }
+
+    std::vector<std::string> deviceIPs;
+    deviceIPs.reserve(deviceCount);
+
+    for (int d = 0; d < deviceCount; ++d)
+    {
+        std::string ip;
+        std::cout << "Enter receiver IP for device " << (d + 1) << ": ";
+        std::cin >> ip;
+        deviceIPs.push_back(ip);
+    }
+
+    std::cout << "How many files to send? ";
+    int fileCount;
+
+    if (!(std::cin >> fileCount) || fileCount <= 0)
+    {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << "Invalid file count.\n";
+        continue;
+    }
+
+    std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
+
+    std::vector<std::string> fileQueue;
+
+    if (fileCount == 1)
+    {
+        std::string file;
+        std::cout << "Enter file path: ";
+        std::getline(std::cin, file);
+        fileQueue.push_back(file);
+    }
+    else
+    {
+        std::cout << "Enter file paths (one per line):\n";
+        for (int i = 0; i < fileCount; ++i)
         {
-            std::string ip;
-            std::cout << "Enter receiver IP: ";
-            std::cin >> ip;
-
-            std::cout << "How many files to send? ";
-            int fileCount;
-            if (!(std::cin >> fileCount)) {
-                std::cin.clear();
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                std::cout << "Invalid count.\n";
-                continue;
-            }
-            // Clear buffer before getline
-            std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
-
-            if (fileCount == 1)
-            {
-                // Single file mode
-                std::string file;
-                std::cout << "Enter file path: ";
-                std::getline(std::cin, file);
-                sendFile(file, ip);
-            }
-            else if (fileCount > 1)
-            {
-                // Multiple files mode
-                std::vector<std::string> fileQueue;
-                std::cout << "Enter file paths (one per line):\n";
-                for (int i = 0; i < fileCount; ++i)
-                {
-                    std::string file;
-                    std::cout << "File " << (i + 1) << ": ";
-                    std::getline(std::cin, file);
-                    fileQueue.push_back(file);
-                }
-                sendMultipleFiles(fileQueue, ip);
-            }
-            else
-            {
-                std::cout << "Invalid file count!\n";
-            }
+            std::string file;
+            std::cout << "File " << (i + 1) << ": ";
+            std::getline(std::cin, file);
+            fileQueue.push_back(file);
         }
+    }
+
+    // Send to each device
+    for (const auto& ip : deviceIPs)
+    {
+        std::cout << "Sending file(s) to " << ip << "...\n";
+
+        if (fileQueue.size() == 1)
+            sendFile(fileQueue[0], ip);
+        else
+            sendMultipleFiles(fileQueue, ip);
+    }
+}
+
+        // if (choice == 1)
+        // {
+        //     std::string ip;
+        //     std::cout << "Enter receiver IP: ";
+        //     std::cin >> ip;
+
+        //     std::cout << "How many files to send? ";
+        //     int fileCount;
+        //     if (!(std::cin >> fileCount)) {
+        //         std::cin.clear();
+        //         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        //         std::cout << "Invalid count.\n";
+        //         continue;
+        //     }
+        //     // Clear buffer before getline
+        //     std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
+
+        //     if (fileCount == 1)
+        //     {
+        //         // Single file mode
+        //         std::string file;
+        //         std::cout << "Enter file path: ";
+        //         std::getline(std::cin, file);
+        //         sendFile(file, ip);
+        //     }
+        //     else if (fileCount > 1)
+        //     {
+        //         // Multiple files mode
+        //         std::vector<std::string> fileQueue;
+        //         std::cout << "Enter file paths (one per line):\n";
+        //         for (int i = 0; i < fileCount; ++i)
+        //         {
+        //             std::string file;
+        //             std::cout << "File " << (i + 1) << ": ";
+        //             std::getline(std::cin, file);
+        //             fileQueue.push_back(file);
+        //         }
+        //         sendMultipleFiles(fileQueue, ip);
+        //     }
+        //     else
+        //     {
+        //         std::cout << "Invalid file count!\n";
+        //     }
+        // }
+        // else if (choice == 2)
+        // {
+        //     // Send Folder option
+        //     std::string ip;
+        //     std::cout << "Enter receiver IP: ";
+        //     std::cin >> ip;
+            
+        //     // Clear buffer before getline
+        //     std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
+            
+        //     std::string folderPath;
+        //     std::cout << "Enter folder path: ";
+        //     std::getline(std::cin, folderPath);
+            
+        //     sendFolder(folderPath, ip);
+        // }
+
         else if (choice == 2)
-        {
-            // Send Folder option
-            std::string ip;
-            std::cout << "Enter receiver IP: ";
-            std::cin >> ip;
-            
-            // Clear buffer before getline
-            std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
-            
-            std::string folderPath;
-            std::cout << "Enter folder path: ";
-            std::getline(std::cin, folderPath);
-            
-            sendFolder(folderPath, ip);
-        }
+{
+    std::cout << "How many devices to send the folder to? ";
+    int deviceCount = 0;
+
+    if (!(std::cin >> deviceCount) || deviceCount <= 0)
+    {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << "Invalid device count.\n";
+        continue;
+    }
+
+    std::vector<std::string> deviceIPs;
+    deviceIPs.reserve(deviceCount);
+
+    for (int d = 0; d < deviceCount; ++d)
+    {
+        std::string ip;
+        std::cout << "Enter receiver IP for device " << (d + 1) << ": ";
+        std::cin >> ip;
+        deviceIPs.push_back(ip);
+    }
+
+    // Clear buffer before getline
+    std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
+
+    std::string folderPath;
+    std::cout << "Enter folder path: ";
+    std::getline(std::cin, folderPath);
+
+    // Send folder to each device
+    for (const auto& ip : deviceIPs)
+    {
+        std::cout << "Sending folder to " << ip << "...\n";
+        sendFolder(folderPath, ip);
+    }
+}
         else if (choice == 3)
         {
             // Clear buffer before getline
